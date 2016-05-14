@@ -115,7 +115,6 @@ class TabbedFigureManager(FigureManagerBase):
         del self._canvases[canvas]
         id_ = self._nbk.page_num(canvas)
         self._nbk.remove_page(id_)
-        canvas.destroy()
         if not self._nbk.get_n_pages():
             self.destroy()
 
@@ -144,22 +143,27 @@ class TabbedFigureManager(FigureManagerBase):
         box.pack_end(button, False, False, 0)
 
         def _remove(btn, canvas):
+            canvas.destroy()
             self.remove_canvas(canvas)
 
         button.connect("clicked", _remove, canvas)
 
-        # # Detach button
-        # button = Gtk.Button()
-        # button.set_tooltip_text('Detach')
-        # button.set_relief(Gtk.ReliefStyle.NONE)
-        # button.set_focus_on_click(False)
-        # button.add(Gtk.Image.new_from_stock(Gtk.STOCK_JUMP_TO,
-        #                                     Gtk.IconSize.MENU))
-        # box.pack_end(button, False, False, 0)
-        #
-        # def _detach(btn, canvas):
-        #     return self.remove_canvas(canvas)
-        # button.connect("clicked", _detach, canvas)
+        # Detach button
+        button = Gtk.Button()
+        button.set_tooltip_text('Detach')
+        button.set_relief(Gtk.ReliefStyle.NONE)
+        button.set_focus_on_click(False)
+        button.add(Gtk.Image.new_from_stock(Gtk.STOCK_JUMP_TO,
+                                            Gtk.IconSize.MENU))
+        box.pack_end(button, False, False, 0)
+
+        def _detach(btn, canvas):
+            self.remove_canvas(canvas)
+            global FM
+            FM = TabbedFigureManager()
+            FM.add_canvas(canvas, num)
+            FM.show()
+        button.connect("clicked", _detach, canvas)
 
         box.show_all()
         canvas.show()
