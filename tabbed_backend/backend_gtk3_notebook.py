@@ -32,7 +32,7 @@ def new_figure_manager_given_figure(num, figure):
     if FM is None:
         FM = TabbedFigureManager()
     canvas = FigureCanvasGTK3Agg(figure)
-    manager = FM.add_canvas(canvas, num)
+    FM.add_figure(figure, num)
     return FM
 
 
@@ -49,9 +49,9 @@ class TabbedFigureManager(FigureManagerBase):
     """
 
     def __init__(self):
-        self._canvas = None
+        self._figure = None
         self._num = None
-        self._canvases = {}
+        self._figures = {}
         self.key_press_handler_id = None
 
         self._window = Gtk.Window()
@@ -97,32 +97,36 @@ class TabbedFigureManager(FigureManagerBase):
         return self._num
 
     @property
+    def figure(self):
+        return self._figure
+
+    @property
     def canvas(self):
-        return self._canvas
+        return self._figure.canvas
 
     def _on_switch_page(self, holder, canvas, page):
         if canvas is not self.canvas:
-            self.set_active_canvas(canvas)
+            self.set_active_figure(canvas.figure)
 
-    def set_active_canvas(self, canvas):
-        self._canvas = canvas
-        self._toolmanager.set_figure(canvas.figure)
-        id_ = self._nbk.page_num(canvas)
+    def set_active_figure(self, figure):
+        self._figure = figure
+        self._toolmanager.set_figure(figure)
+        id_ = self._nbk.page_num(self.canvas)
         self._nbk.set_current_page(id_)
         self._nbk.show()
 
-    def remove_canvas(self, canvas):
-        del self._canvases[canvas]
-        id_ = self._nbk.page_num(canvas)
+    def remove_figure(self, figure):
+        del self._figures[figure]
+        id_ = self._nbk.page_num(figure.canvas)
         self._nbk.remove_page(id_)
         if not self._nbk.get_n_pages():
             self.destroy()
 
-    def add_canvas(self, canvas, num):
-        canvas.manager = self
-        self._canvas = canvas
+    def add_figure(self, figure, num):
+        figure.canvas.manager = self
+        self._figure = figure
         self._num = num
-        self._canvases[canvas] = {'num': num}
+        self._figures[figure] = {'num': num}
 
         title = 'Fig %d' % num
         box = Gtk.Box()
@@ -131,7 +135,7 @@ class TabbedFigureManager(FigureManagerBase):
 
         label = Gtk.Label(title)
         box.pack_start(label, True, True, 0)
-        self._canvases[canvas]['label'] = label
+        self._figures[figure]['label'] = label
 
         # close button
         button = Gtk.Button()
@@ -142,11 +146,11 @@ class TabbedFigureManager(FigureManagerBase):
                                             Gtk.IconSize.MENU))
         box.pack_end(button, False, False, 0)
 
-        def _remove(btn, canvas):
-            canvas.destroy()
-            self.remove_canvas(canvas)
+        def _remove(btn, figure):
+            figure.canvas.destroy()
+            self.remove_figure(figure)
 
-        button.connect("clicked", _remove, canvas)
+        button.connect("clicked", _remove, figure)
 
         # Detach button
         button = Gtk.Button()
@@ -157,30 +161,30 @@ class TabbedFigureManager(FigureManagerBase):
                                             Gtk.IconSize.MENU))
         box.pack_end(button, False, False, 0)
 
-        def _detach(btn, canvas):
-            self.remove_canvas(canvas)
+        def _detach(btn, figure):
+            self.remove_figure(figure)
             global FM
             FM = TabbedFigureManager()
-            FM.add_canvas(canvas, num)
+            FM.add_figure(figure, num)
             FM.show()
-        button.connect("clicked", _detach, canvas)
+        button.connect("clicked", _detach, figure)
 
         box.show_all()
-        canvas.show()
-        self._nbk.append_page(canvas, box)
-        self.set_active_canvas(canvas)
+        figure.canvas.show()
+        self._nbk.append_page(figure.canvas, box)
+        self.set_active_figure(figure)
 
         #
         # self.canvas.grab_focus()
-        self._toolmanager.set_figure(self.canvas.figure)
-        w = int(canvas.figure.bbox.width)
-        h = int(canvas.figure.bbox.height)
+        self._toolmanager.set_figure(self.figure)
+        w = int(figure.bbox.width)
+        h = int(figure.bbox.height)
         self._window.set_default_size (w, self._height + h)
 
-
     def destroy(self, *args):
-        for canvas in list(self._canvases.keys()):
-            self.remove_canvas(canvas)
+        for figure in list(self._figures.keys()):
+            figure.canvas.destroy()
+            self.remove_figure(figure)
         if self._window:
             self._window.destroy()
             self._window = None
