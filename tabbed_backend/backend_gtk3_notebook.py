@@ -1,4 +1,3 @@
-FM = None
 import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import (FigureCanvasGTK3Agg,
@@ -14,7 +13,19 @@ from matplotlib import backend_tools
 import sys
 from gi.repository import Gtk
 
+class CurrentFigureManager:
+    current = None
+    def __init__(self):
+        pass
 
+    def __call__(self, manager=True):
+        if not manager or not self.current:
+            self.current = TabbedFigureManager()
+        elif manager is not True:
+            self.current = manager
+        return self.current
+
+FM = CurrentFigureManager()
 
 def new_figure_manager(num, *args, **kwargs):
     """
@@ -28,14 +39,11 @@ def new_figure_manager_given_figure(num, figure):
     """
     Create a new figure manager instance for the given figure.
     """
-    global FM
-    if FM is None:
-        FM = TabbedFigureManager()
+    fm = FM()
     canvas = FigureCanvasGTK3Agg(figure)
-    FM.add_figure(figure, num)
-    return FM
-
-
+    fm.add_figure(figure, num)
+    return fm
+    
 
 class TabbedFigureManager(FigureManagerBase):
     """
@@ -50,9 +58,8 @@ class TabbedFigureManager(FigureManagerBase):
 
     def __init__(self):
         self._figure = None
-        self._num = None
         self._figures = {}
-        self.key_press_handler_id = None
+        # self.key_press_handler_id = None
 
         self._window = Gtk.Window()
         self.set_window_title("Multi Figure")
@@ -94,21 +101,30 @@ class TabbedFigureManager(FigureManagerBase):
 
     @property
     def num(self):
-        return self._num
+        """The num id of the active figure"""
+        return self._figures[self.figure]['num']
 
     @property
     def figure(self):
+        """Active figure"""
         return self._figure
 
     @property
     def canvas(self):
+        """Active canvas"""
         return self._figure.canvas
+
+    def set_figure_title(self, figure, title):
+        self._figures[figure]['label'].set_text(title)
 
     def _on_switch_page(self, holder, canvas, page):
         if canvas is not self.canvas:
             self.set_active_figure(canvas.figure)
 
     def set_active_figure(self, figure):
+        """Set the active figure"""
+        if figure not in self._figures:
+            raise ValueError("Figure not managed by this manager")
         self._figure = figure
         self._toolmanager.set_figure(figure)
         id_ = self._nbk.page_num(self.canvas)
@@ -116,16 +132,27 @@ class TabbedFigureManager(FigureManagerBase):
         self._nbk.show()
 
     def remove_figure(self, figure):
+        """Remove figure from this FigureManager"""
         del self._figures[figure]
         id_ = self._nbk.page_num(figure.canvas)
         self._nbk.remove_page(id_)
         if not self._nbk.get_n_pages():
             self.destroy()
 
+    def detach_figure(self, figure):
+        """Move figure into a new FigureManager"""
+        num = self._figures[figure]['num']
+        self.remove_figure(figure)
+        global FM
+        fm = FM(manager=False)
+        fm.add_figure(figure, num)
+        fm.show()
+        return fm
+
     def add_figure(self, figure, num):
+        """Add figure to this FigureManager"""
         figure.canvas.manager = self
         self._figure = figure
-        self._num = num
         self._figures[figure] = {'num': num}
 
         title = 'Fig %d' % num
@@ -162,11 +189,7 @@ class TabbedFigureManager(FigureManagerBase):
         box.pack_end(button, False, False, 0)
 
         def _detach(btn, figure):
-            self.remove_figure(figure)
-            global FM
-            FM = TabbedFigureManager()
-            FM.add_figure(figure, num)
-            FM.show()
+            self.detach_figure(figure)
         button.connect("clicked", _detach, figure)
 
         box.show_all()
@@ -174,7 +197,6 @@ class TabbedFigureManager(FigureManagerBase):
         self._nbk.append_page(figure.canvas, box)
         self.set_active_figure(figure)
 
-        #
         # self.canvas.grab_focus()
         self._toolmanager.set_figure(self.figure)
         w = int(figure.bbox.width)
