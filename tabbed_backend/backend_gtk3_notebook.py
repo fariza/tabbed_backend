@@ -31,19 +31,20 @@ def new_figure_manager(num, *args, **kwargs):
     """
     Create a new figure manager instance
     """
+    manager = kwargs.pop('manager', True)
     FigureClass = kwargs.pop('FigureClass', Figure)
     thisFig = FigureClass(*args, **kwargs)
-    return new_figure_manager_given_figure(num, thisFig)
+    return new_figure_manager_given_figure(num, thisFig, manager)
 
-def new_figure_manager_given_figure(num, figure):
+def new_figure_manager_given_figure(num, figure, manager):
     """
     Create a new figure manager instance for the given figure.
     """
-    fm = FM()
+    fm = FM(manager)
     canvas = FigureCanvasGTK3Agg(figure)
     fm.add_figure(figure, num)
     return fm
-    
+
 
 class TabbedFigureManager(FigureManagerBase):
     """
@@ -80,6 +81,7 @@ class TabbedFigureManager(FigureManagerBase):
         self._window.add(self._vbox)
         self._nbk = Gtk.Notebook()
         self._nbk.connect('switch-page', self._on_switch_page)
+        self._nbk.set_scrollable(True)
         self._vbox.pack_start(self._nbk, True, True, 0)
 
         self._set_tools()
