@@ -102,6 +102,22 @@ class TabbedFigureManager(FigureManagerBase):
         self._vbox.pack_start(self._statusbar, False, False, 0)
 
     @property
+    def window(self):
+        return self._window
+
+    @property
+    def toolmanager(self):
+        return self._toolmanager
+
+    @property
+    def toolbar(self):
+        return self._toolbar
+
+    @property
+    def figures(self):
+        return list(self._figures.keys())
+
+    @property
     def num(self):
         """The num id of the active figure"""
         return self._figures[self.figure]['num']
