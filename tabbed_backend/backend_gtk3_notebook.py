@@ -82,21 +82,22 @@ class TabbedFigureManager(FigureManagerBase):
         self._nbk = Gtk.Notebook()
         self._nbk.connect('switch-page', self._on_switch_page)
         self._nbk.set_scrollable(True)
+        self._nbk.set_show_tabs(True)
         self._vbox.pack_start(self._nbk, True, True, 0)
 
         self._set_tools()
         self._vbox.show_all()
-
-        self._height = self._vbox.size_request().height
+        self._height = self._toolbar.size_request().height
+        self._height += self._statusbar.size_request().height
         self._window.connect("destroy", self.destroy)
         self._window.connect("delete_event", self.destroy)
 
     def _set_tools(self):
         self._toolmanager = ToolManager(self)
         self._toolbar = ToolbarGTK3(self._toolmanager)
+        self._statusbar = StatusbarGTK3(self._toolmanager)
         backend_tools.add_tools_to_manager(self._toolmanager)
         backend_tools.add_tools_to_container(self._toolbar)
-        self._statusbar = StatusbarGTK3(self._toolmanager)
         self._vbox.pack_start(self._toolbar, False, False, 0)
         self._vbox.pack_start(Gtk.HSeparator(), False, False, 0)
         self._vbox.pack_start(self._statusbar, False, False, 0)
@@ -218,8 +219,9 @@ class TabbedFigureManager(FigureManagerBase):
         # self.canvas.grab_focus()
         self._toolmanager.set_figure(self.figure)
         w = int(figure.bbox.width)
-        h = int(figure.bbox.height)
-        self._window.set_default_size (w, self._height + h)
+        h = self._height + int(figure.bbox.height)
+        h += self._nbk.size_request().height
+        self._window.set_default_size(w, h)
 
     def destroy(self, *args):
         for figure in list(self._figures.keys()):
