@@ -239,9 +239,8 @@ class TabbedFigureManager(FigureManagerBase):
         # if Gcf.get_num_fig_managers()==0 and \
         #        not matplotlib.is_interactive() and \
 
-        print('destroy', Gtk.main_level(), matplotlib.is_interactive())
-        if Gtk.main_level() >= 1:
-            Gtk.main_quit()
+        # if Gtk.main_level() >= 1:
+        #     Gtk.main_quit()
 
     def show(self):
         self._window.show()
