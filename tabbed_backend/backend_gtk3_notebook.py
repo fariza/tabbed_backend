@@ -13,8 +13,10 @@ from matplotlib import backend_tools
 import sys
 from gi.repository import Gtk
 
+
 class CurrentFigureManager:
     current = None
+
     def __init__(self):
         pass
 
@@ -27,6 +29,7 @@ class CurrentFigureManager:
 
 FM = CurrentFigureManager()
 
+
 def new_figure_manager(num, *args, **kwargs):
     """
     Create a new figure manager instance
@@ -35,6 +38,7 @@ def new_figure_manager(num, *args, **kwargs):
     FigureClass = kwargs.pop('FigureClass', Figure)
     thisFig = FigureClass(*args, **kwargs)
     return new_figure_manager_given_figure(num, thisFig, manager)
+
 
 def new_figure_manager_given_figure(num, figure, manager):
     """
@@ -74,7 +78,8 @@ class TabbedFigureManager(FigureManagerBase):
             # all, so I am not sure how to catch it.  I am unhappy
             # doing a blanket catch here, but am not sure what a
             # better way is - JDH
-            verbose.report('Could not load matplotlib icon: %s' % sys.exc_info()[1])
+            verbose.report('Could not load matplotlib icon: %s'
+                           % sys.exc_info()[1])
 
         self._vbox = Gtk.Box()
         self._vbox.set_property("orientation", Gtk.Orientation.VERTICAL)
@@ -234,13 +239,14 @@ class TabbedFigureManager(FigureManagerBase):
         # if Gcf.get_num_fig_managers()==0 and \
         #        not matplotlib.is_interactive() and \
 
+        print('destroy', Gtk.main_level(), matplotlib.is_interactive())
         if Gtk.main_level() >= 1:
             Gtk.main_quit()
 
     def show(self):
         self._window.show()
 
-    def full_screen_toggle (self):
+    def full_screen_toggle(self):
         self._full_screen_flag = not self._full_screen_flag
         if self._full_screen_flag:
             self._window.fullscreen()
