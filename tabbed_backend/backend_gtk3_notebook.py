@@ -98,7 +98,7 @@ class TabbedFigureManager(FigureManagerBase):
         self._window.connect("delete_event", self.destroy)
 
     def _set_tools(self):
-        self._toolmanager = ToolManager(self)
+        self._toolmanager = ToolManager()
         self._toolbar = ToolbarGTK3(self._toolmanager)
         self._statusbar = StatusbarGTK3(self._toolmanager)
         backend_tools.add_tools_to_manager(self._toolmanager)
@@ -221,7 +221,7 @@ class TabbedFigureManager(FigureManagerBase):
         self._nbk.append_page(figure.canvas, box)
         self.set_active_figure(figure)
 
-        # self.canvas.grab_focus()
+        figure.canvas.grab_focus()
         self._toolmanager.set_figure(self.figure)
         w = int(figure.bbox.width)
         h = self._height + int(figure.bbox.height)
