@@ -10,12 +10,9 @@ plt.plot([1,2,3])
 f2 = plt.figure()
 plt.plot([3, 2, 1])
 
-f3 = plt.figure(manager=f1.canvas.manager)
+f3 = plt.figure()
 plt.plot([3, 2, 3])
 
-
-
-manager = f1.canvas.manager
-manager.detach_figure(f1)
+f1.canvas.manager.detach()
 
 plt.show()

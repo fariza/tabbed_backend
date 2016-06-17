@@ -12,20 +12,37 @@ from matplotlib import backend_tools
 
 import sys
 from gi.repository import Gtk
+import weakref
+
+
+# This will be replaced by an rcparam
+# or even better, removed when we get rid of GCF once and for all
+GCF_COMPATIBLE = False
+from .proxy_manager import ProxyManager
 
 
 class CurrentFigureManager:
-    current = None
-
     def __init__(self):
-        pass
+        class Object:
+            pass
+        o = Object()
+        self.current = weakref.ref(o)
+        self.managers = set()
 
     def __call__(self, manager=True):
-        if not manager or not self.current:
-            self.current = TabbedFigureManager()
+
+        if isinstance(manager, ProxyManager):
+            manager = manager.multi_manager
+
+        if not manager or not self.current():
+            m = TabbedFigureManager()
         elif manager is not True:
-            self.current = manager
-        return self.current
+            m = manager
+        else:
+            m = self.current()
+        self.current = weakref.ref(m)
+        self.managers.add(m)
+        return m
 
 FM = CurrentFigureManager()
 
@@ -46,8 +63,9 @@ def new_figure_manager_given_figure(num, figure, manager):
     """
     fm = FM(manager)
     canvas = FigureCanvasGTK3Agg(figure)
+    proxy_manager = ProxyManager(figure, num)
     fm.add_figure(figure, num)
-    return fm
+    return proxy_manager
 
 
 class TabbedFigureManager(FigureManagerBase):
@@ -124,11 +142,6 @@ class TabbedFigureManager(FigureManagerBase):
         return list(self._figures.keys())
 
     @property
-    def num(self):
-        """The num id of the active figure"""
-        return self._figures[self.figure]['num']
-
-    @property
     def figure(self):
         """Active figure"""
         return self._figure
@@ -136,10 +149,15 @@ class TabbedFigureManager(FigureManagerBase):
     @property
     def canvas(self):
         """Active canvas"""
+        if not self._figure:
+            return None
         return self._figure.canvas
 
     def set_figure_title(self, figure, title):
         self._figures[figure]['label'].set_text(title)
+
+    def get_figure_title(self, figure):
+        return self._figures[figure]['label'].get_text(title)
 
     def _on_switch_page(self, holder, canvas, page):
         if canvas is not self.canvas:
@@ -157,6 +175,12 @@ class TabbedFigureManager(FigureManagerBase):
 
     def remove_figure(self, figure):
         """Remove figure from this FigureManager"""
+
+        figure.multi_manager = None
+
+        if figure is self._figure:
+            self._figure = None
+
         del self._figures[figure]
         id_ = self._nbk.page_num(figure.canvas)
         self._nbk.remove_page(id_)
@@ -165,8 +189,10 @@ class TabbedFigureManager(FigureManagerBase):
 
     def detach_figure(self, figure):
         """Move figure into a new FigureManager"""
-        num = self._figures[figure]['num']
+
+        num = self._figures[figure]['manager'].num
         self.remove_figure(figure)
+
         global FM
         fm = FM(manager=False)
         fm.add_figure(figure, num)
@@ -175,9 +201,11 @@ class TabbedFigureManager(FigureManagerBase):
 
     def add_figure(self, figure, num):
         """Add figure to this FigureManager"""
-        figure.canvas.manager = self
         self._figure = figure
-        self._figures[figure] = {'num': num}
+        self._figures[figure] = {}
+
+        figure.canvas.manager.multi_manager = self
+        self._figures[figure]['manager'] = figure.canvas.manager
 
         title = 'Fig %d' % num
         box = Gtk.Box()
@@ -198,8 +226,7 @@ class TabbedFigureManager(FigureManagerBase):
         box.pack_end(button, False, False, 0)
 
         def _remove(btn, figure):
-            figure.canvas.destroy()
-            self.remove_figure(figure)
+            self.destroy_figure(figure)
 
         button.connect("clicked", _remove, figure)
 
@@ -228,19 +255,27 @@ class TabbedFigureManager(FigureManagerBase):
         h += self._nbk.size_request().height
         self._window.set_default_size(w, h)
 
+    def destroy_figure(self, figure):
+        figure.canvas.destroy()
+        self._figures[figure]['manager'].destroy_figure()
+        # This will come back in remove_figure
+
     def destroy(self, *args):
-        for figure in list(self._figures.keys()):
-            figure.canvas.destroy()
-            self.remove_figure(figure)
+        for figure in self._figures:
+            self.destroy_figure(figure)
+            # destroy will eventually be called by destroy_figure
+            # so we stop until there are no more figures
+            return
         if self._window:
             self._window.destroy()
             self._window = None
 
-        # if Gcf.get_num_fig_managers()==0 and \
-        #        not matplotlib.is_interactive() and \
-
-        # if Gtk.main_level() >= 1:
-        #     Gtk.main_quit()
+        print('removing', id(self))
+        FM.managers.remove(self)
+        print('managers alive', len(FM.managers))
+        if len(FM.managers) == 0 and not matplotlib.is_interactive() and \
+            Gtk.main_level() >= 1:
+            Gtk.main_quit()
 
     def show(self):
         self._window.show()
@@ -260,5 +295,4 @@ class TabbedFigureManager(FigureManagerBase):
         self._window.set_title(title)
 
     def resize(self, width, height):
-        'set the canvas size in pixels'
         self._window.resize(width, height)
