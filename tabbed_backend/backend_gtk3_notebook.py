@@ -112,6 +112,7 @@ class TabbedFigureManager(FigureManagerBase):
         self._vbox.show_all()
         self._height = self._toolbar.size_request().height
         self._height += self._statusbar.size_request().height
+
         self._window.connect("destroy", self.destroy)
         self._window.connect("delete_event", self.destroy)
 
@@ -175,7 +176,6 @@ class TabbedFigureManager(FigureManagerBase):
 
     def remove_figure(self, figure):
         """Remove figure from this FigureManager"""
-
         figure.multi_manager = None
 
         if figure is self._figure:
@@ -185,7 +185,7 @@ class TabbedFigureManager(FigureManagerBase):
         id_ = self._nbk.page_num(figure.canvas)
         self._nbk.remove_page(id_)
         if not self._nbk.get_n_pages():
-            self.destroy()
+            self.destroy_window()
 
     def detach_figure(self, figure):
         """Move figure into a new FigureManager"""
@@ -261,18 +261,17 @@ class TabbedFigureManager(FigureManagerBase):
         # This will come back in remove_figure
 
     def destroy(self, *args):
-        for figure in self._figures:
+        for figure in list(self._figures.keys()):
             self.destroy_figure(figure)
-            # destroy will eventually be called by destroy_figure
-            # so we stop until there are no more figures
-            return
+
+    def destroy_window(self, *args):
+        # This method is not to be called directly
+        # only from remove_figure if there are no more figures
         if self._window:
             self._window.destroy()
             self._window = None
 
-        print('removing', id(self))
         FM.managers.remove(self)
-        print('managers alive', len(FM.managers))
         if len(FM.managers) == 0 and not matplotlib.is_interactive() and \
             Gtk.main_level() >= 1:
             Gtk.main_quit()

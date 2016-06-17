@@ -49,5 +49,7 @@ class ProxyManager(FigureManagerBase):
     def toolbar(self):
         return self.multi_manager.toolbar
 
+    ##################################################
+    # Extra methods because of multi manager
     def detach(self):
         self.multi_manager.detach_figure(self.figure)
