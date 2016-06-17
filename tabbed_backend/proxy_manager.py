@@ -4,7 +4,8 @@ from matplotlib._pylab_helpers import Gcf
 
 class ProxyManager(FigureManagerBase):
     """
-    Helper class to remove Gfc from MultiFigureManager
+    Helper class to remove Gfc from MultiFigureManager and to provide access
+    to traditional methods usually available from figuremanager
     """
     def __init__(self, figure, num):
         super().__init__(figure.canvas, num)
