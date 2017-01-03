@@ -115,6 +115,8 @@ class TabbedFigureManager(FigureManagerBase):
 
         self._window.connect("destroy", self.destroy)
         self._window.connect("delete_event", self.destroy)
+        if matplotlib.is_interactive():
+            self._window.show()
 
     def _set_tools(self):
         self._toolmanager = ToolManager()
@@ -254,6 +256,7 @@ class TabbedFigureManager(FigureManagerBase):
         h = self._height + int(figure.bbox.height)
         h += self._nbk.size_request().height
         self._window.set_default_size(w, h)
+        self.resize(w, h)
 
     def destroy_figure(self, figure):
         figure.canvas.destroy()
