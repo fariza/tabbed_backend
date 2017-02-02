@@ -34,7 +34,8 @@ class CurrentFigureManager:
         if isinstance(manager, ProxyManager):
             manager = manager.multi_manager
 
-        if not manager or not self.current():
+        current = self.current()
+        if not manager or not current or current not in self.managers:
             m = TabbedFigureManager()
         elif manager is not True:
             m = manager
