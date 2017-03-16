@@ -43,6 +43,10 @@ class ProxyManager(FigureManagerBase):
         self.multi_manager.set_figure_title(self.figure, title)
 
     @property
+    def window(self):
+        return self.multi_manager.window
+
+    @property
     def toolmanager(self):
         return self.multi_manager.toolmanager
 

@@ -161,7 +161,7 @@ class TabbedFigureManager(FigureManagerBase):
         self._figures[figure]['label'].set_text(title)
 
     def get_figure_title(self, figure):
-        return self._figures[figure]['label'].get_text(title)
+        return self._figures[figure]['label'].get_text()
 
     def _on_switch_page(self, holder, canvas, page):
         if canvas is not self.canvas:
