@@ -1,18 +1,22 @@
+import logging
 import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import (FigureCanvasGTK3Agg,
                                                  show)
-from matplotlib.backends.backend_gtk3 import (ToolbarGTK3, StatusbarGTK3)
+from matplotlib.backends.backend_gtk3 import (ToolbarGTK3,
+                                              StatusbarGTK3,
+                                              window_icon)
 
 from matplotlib.backend_bases import FigureManagerBase
 
-from matplotlib import verbose
 from matplotlib.backend_managers import ToolManager
 from matplotlib import backend_tools
 
 import sys
 from gi.repository import Gtk
 import weakref
+
+_log = logging.getLogger(__name__)
 
 
 # This will be replaced by an rcparam
@@ -44,6 +48,7 @@ class CurrentFigureManager:
         self.current = weakref.ref(m)
         self.managers.add(m)
         return m
+
 
 FM = CurrentFigureManager()
 
@@ -92,13 +97,12 @@ class TabbedFigureManager(FigureManagerBase):
         except (SystemExit, KeyboardInterrupt):
             # re-raise exit type Exceptions
             raise
-        except:
+        except Exception:
             # some versions of gtk throw a glib.GError but not
             # all, so I am not sure how to catch it.  I am unhappy
             # doing a blanket catch here, but am not sure what a
             # better way is - JDH
-            verbose.report('Could not load matplotlib icon: %s'
-                           % sys.exc_info()[1])
+            _log.info('Could not load matplotlib icon: %s', sys.exc_info()[1])
 
         self._vbox = Gtk.Box()
         self._vbox.set_property("orientation", Gtk.Orientation.VERTICAL)
